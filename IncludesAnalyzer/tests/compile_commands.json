@@ -1,0 +1,8 @@
+[
+
+{
+  "directory": "/home/wallace/Workspace/CppTools/build",
+  "command": "/usr/bin/c++   -I../IncludesAnalyzer/include    -std=gnu++11  -o IncludesAnalyzer/CMakeFiles/IncludesAnalyzer.dir/src/compile_commands_reader.cpp.o -c /home/wallace/Workspace/CppTools/IncludesAnalyzer/src/compile_commands_reader.cpp",
+  "file": "/home/wallace/Workspace/CppTools/IncludesAnalyzer/src/compile_commands_reader.cpp"
+}
+]
