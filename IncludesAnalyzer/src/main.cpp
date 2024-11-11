@@ -46,7 +46,21 @@ class Report{
 
 int main(int argc, char *argv[]) {
 
+    Graph g;
+    
+    g.LinkNodes(g.AddNode("a"), g.AddNode("b"));
+    g.LinkNodes(g.AddNode("b"), g.AddNode("c"));
 
+    // g.LinkNodes(g.AddNode("a"), g.AddNode("b"));
+    
+    std::cout << g.Stats() << std::endl;
+
+    g.ForEachNode([](Node & node){
+        std::cout << node.Stringify() << std::endl;
+    });
+
+    // g.AddNode("b");
+    // g.nodes["a"].setX(1);   
     // std::filesystem::path cwd = std::filesystem::current_path() // "filename.txt";
     // std::cout << std::filesystem::current_path() << std::endl;   
 
