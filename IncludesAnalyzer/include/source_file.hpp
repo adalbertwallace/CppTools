@@ -11,6 +11,7 @@ using NodeHandle = int;
 
 
 
+
 class SourceFile{
     public:
         SourceFile(const std::string& aboslutePath):  path(aboslutePath){
@@ -55,12 +56,38 @@ class SourceFile{
         std::vector<std::weak_ptr<SourceFile>> GetIncludes() const {
             return includes;
         }
+
+    static std::string str(SourceFile& inc) {
+        std::string r =  "item: " + inc.GetPath() + "\nincluded by:\n";
+        for (auto i : inc.GetIncludedBy()) {
+            r += i.lock()->GetPath() + "\n";
+        }
+        r += "includes:\n";
+        for (auto i : inc.GetIncludes()) {
+            r += i.lock()->GetPath() + "\n";
+        }
+                
+        return r;
+    }
     private:
         std::string path;
         std::vector<std::weak_ptr<SourceFile>> includedBy;
         std::vector<std::weak_ptr<SourceFile>> includes;
 };
+struct IncludeToVisit {
+    public:
+    std::vector<std::string> includePaths;
+    std::string name;
+    std::weak_ptr<SourceFile> includer;
 
+    static std::string str(IncludeToVisit& inc) {
+        std::string r =  inc.name + "included by " + inc.includer.lock()->GetPath() + " \npath set: ";
+        for (auto i : inc.includePaths) {
+            r += +"\n"+i + " ";
+        }
+        return r;
+    }
+};
 class FilesGraph{
     public:
         FilesGraph(){
@@ -68,18 +95,75 @@ class FilesGraph{
         ~FilesGraph(){
         }
 
-        std::shared_ptr<SourceFile> AddNode(std::string absoluteFile){
-            // auto node = std::make_shared<SourceFile>(absoluteFile);
-            // nodes.push_back(node);
-            return nullptr;
+        bool UpdateNetwork(CompileCommand & cc){
+            auto sourceFilePtr = std::make_shared<SourceFile>(cc.GetSourceFile());
+            nodes.push_back(sourceFilePtr);
+
+            std::vector<IncludeToVisit> includesToVisit;
+            auto includes = sourceFilePtr -> ReadIncludes();
+            for (auto include : includes) {
+                includesToVisit.push_back({cc.GetIncludePaths(), include, sourceFilePtr});
+            }
+                
+            while (!includesToVisit.empty())
+            {
+                auto include = includesToVisit.back();
+                includesToVisit.pop_back();
+                // std::cout << " --> Visiting include " << IncludeToVisit::str(include) << std::endl;
+        
+                std::string fileName = include.name;
+                bool terminatingNode = true;
+                //resolve path
+                for (auto includePath : include.includePaths) {
+                    PathExplorer pe(includePath);
+                    if (pe.Contains(include.name)){
+                        fileName = includePath + "/" + include.name;
+                        terminatingNode = false;
+                        break;
+                    } else {
+                        std::cout << include.name << " not found in " << includePath << std::endl;
+                    }
+                }
+           
+            if (std::any_of(nodes.begin(), nodes.end(), [fileName, &include](std::shared_ptr<SourceFile> node){
+                if (node->GetPath() == fileName) {
+                    node->AddIncludedBy(include.includer);
+                    include.includer.lock()->AddInclude(node);
+                    return true;
+                }
+                return false;
+             }))
+             {
+                 continue;
+             }
+            
+            auto sourceFilePtr = std::make_shared<SourceFile>(fileName);
+            sourceFilePtr->AddIncludedBy(include.includer);
+            if (terminatingNode == false) {
+                auto includes = sourceFilePtr->ReadIncludes();
+                for (auto i : includes) {
+                    includesToVisit.push_back({include.includePaths, i, sourceFilePtr});
+                }
+            
+            }
+        
+        std::shared_ptr<SourceFile> spt = include.includer.lock();
+        
+        if (spt){
+            spt->AddInclude(sourceFilePtr);
+        }
+        nodes.push_back(sourceFilePtr);
+        
         }
 
-        void AddIncludeRelation(std::shared_ptr<SourceFile> from, std::shared_ptr<SourceFile> to){
-            // from->AddInclude(to);
-            // to->AddIncludedBy(from);
         }
 
-        std::vector<std::shared_ptr<SourceFile>> GetNodes() const {
+        void ForEachNode(std::function<void(std::shared_ptr<SourceFile>)> f) {
+            for (auto i : nodes) {
+                f(i);
+            }
+        }
+                std::vector<std::shared_ptr<SourceFile>> GetNodes() const {
             return nodes;
         }
 

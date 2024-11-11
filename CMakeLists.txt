@@ -2,21 +2,11 @@
 cmake_minimum_required(VERSION 3.12)
 
 # Project name
-project(CppToolsTestProject)
+project(CppTools)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-add_executable(CppToolsTestProject
-    src/main.cpp
-    src/functions.cpp
-) 
-
-target_include_directories(
-    CppToolsTestProject 
-    PRIVATE 
-        include
-)
 # Add subdirectories for different components of the project
-
+add_subdirectory(IncludesAnalyzer)
 # Export compile commands
