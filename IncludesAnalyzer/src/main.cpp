@@ -19,30 +19,30 @@ bool file_exists(const std::string& name) {
 
 
 
-void dfs (std::shared_ptr<SourceFile> node, std::string prefix = "") {
-    if (node->GetIncludes().empty()) {
-        std::cout << prefix << node->GetPath() << std::endl;
-        return;
-    }
-    for (auto i : node->GetIncludes()) {
-        dfs(i.lock(), prefix + node->GetPath() + " -> ");
-    } 
+// void dfs (std::shared_ptr<SourceFile> node, std::string prefix = "") {
+//     if (node->GetIncludes().empty()) {
+//         std::cout << prefix << node->GetPath() << std::endl;
+//         return;
+//     }
+//     for (auto i : node->GetIncludes()) {
+//         dfs(i.lock(), prefix + node->GetPath() + " -> ");
+//     } 
 
-}
-class Report{
-    public:
-    static std::string Print(std::vector<std::shared_ptr<SourceFile>> & sourceFiles){
-        for (auto i : sourceFiles) {
-            std::cout << SourceFile::str(*i)<<std::endl;
-            auto isRootNode =i->GetIncludedBy().empty();
-            if (isRootNode) {
-                dfs(i);
-            }
-        }
-        return "";
-    }
+// }
+// class Report{
+//     public:
+//     static std::string Print(std::vector<std::shared_ptr<SourceFile>> & sourceFiles){
+//         for (auto i : sourceFiles) {
+//             std::cout << SourceFile::str(*i)<<std::endl;
+//             auto isRootNode =i->GetIncludedBy().empty();
+//             if (isRootNode) {
+//                 dfs(i);
+//             }
+//         }
+//         return "";
+//     }
 
-};
+// };
 
 int main(int argc, char *argv[]) {
 
@@ -80,7 +80,7 @@ int main(int argc, char *argv[]) {
     
     FilesGraph graph;
     for (auto cc : ccs) {
-        graph.UpdateNetwork2(cc);
+        graph.UpdateNetwork(cc);
     }
     // graph.ForEachNode([](std::shared_ptr<SourceFile> node){
     //     std::cout <<"PATH: "<< node->GetPath() << std::endl;

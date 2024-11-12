@@ -13,19 +13,8 @@
 #include "Common.hpp"
 #include <set>
 
-
-class SourceFile{
-    public:
-        SourceFile(const std::string& aboslutePath):  path(aboslutePath){
-            // std::cout << "SourceFile::SourceFile " << path << std::endl;
-            // ;
-        }
-        ~SourceFile(){
-            // std::cout << "SourceFile::~SourceFile " << path << std::endl;
-        }
-    
-        std::vector<std::string> ReadIncludes() const
-        {
+std::vector<std::string> ReadIncludes(std::string path) 
+{
         std::ifstream fileStream(path.c_str());
         std::string line;
         std::regex includeRegex("^\\s*#include\\s*<(.*)>");
@@ -40,56 +29,9 @@ class SourceFile{
             }
         }
         return includes;
-  
-        }
 
-        std::string GetPath() const {
-            return path;
-        }
-        void AddIncludedBy(std::weak_ptr<SourceFile> includedBy){
-            this->includedBy.push_back(includedBy);
-        }
-        void AddInclude(std::weak_ptr<SourceFile> include){
-            this->includes.push_back(include);
-        }
-        std::vector<std::weak_ptr<SourceFile>> GetIncludedBy() const {
-            return includedBy;
-        }
-        std::vector<std::weak_ptr<SourceFile>> GetIncludes() const {
-            return includes;
-        }
+}
 
-    static std::string str(SourceFile& inc) {
-        std::string r =  "item: " + inc.GetPath() + "\nincluded by:\n";
-        for (auto i : inc.GetIncludedBy()) {
-            r += i.lock()->GetPath() + "\n";
-        }
-        r += "includes:\n";
-        for (auto i : inc.GetIncludes()) {
-            r += i.lock()->GetPath() + "\n";
-        }
-                
-        return r;
-    }
-    private:
-        std::string path;
-        std::vector<std::weak_ptr<SourceFile>> includedBy;
-        std::vector<std::weak_ptr<SourceFile>> includes;
-};
-struct IncludeToVisit {
-    public:
-    std::vector<std::string> includePaths;
-    std::string name;
-    std::weak_ptr<SourceFile> includer;
-
-    static std::string str(IncludeToVisit& inc) {
-        std::string r =  inc.name + "included by " + inc.includer.lock()->GetPath() + " \npath set: ";
-        for (auto i : inc.includePaths) {
-            r += +"\n"+i + " ";
-        }
-        return r;
-    }
-};
 class FilesGraph{
     private:
         Graph graph;
@@ -100,28 +42,22 @@ class FilesGraph{
         ~FilesGraph(){
         }
         
-        bool UpdateNetwork2(CompileCommand & cc){
-            
-            std::cout << "Updating network"<<std::endl;
+        bool UpdateNetwork(CompileCommand & cc){
 
-            auto sourceFile = SourceFile(cc.GetSourceFile());
+            auto sourceFile = cc.GetSourceFile();
             auto includerHandle = graph.AddNode(cc.GetSourceFile());
             processedNodes.insert(cc.GetSourceFile());
 
-            auto includes = sourceFile.ReadIncludes();
+            auto includes = ReadIncludes(sourceFile);
             auto inclduePaths = cc.GetIncludePaths();
 
-            bool terminatingNode = true;
-            
-            auto evalPath = [&inclduePaths, &terminatingNode](std::string include) {
+            auto evalPath = [&inclduePaths](std::string include) {
                 for (auto includePath : inclduePaths) {
                     PathExplorer pe(includePath);
                     if (pe.Contains(include)){
-                        terminatingNode = false;
                         return includePath + "/" + include;
                     }
                 }
-                terminatingNode = true;
                 return include;
             };
 
@@ -139,12 +75,9 @@ class FilesGraph{
                     continue;
                 } else 
                 {
-                    std::cout << "Now processing " << absolute_include_path << std::endl;
-                    // if (processedNodes.find(absolute_include_path) != processedNodes.end()) {
-                    //     continue;
-                    // }
-                    auto includes1 = SourceFile(absolute_include_path).ReadIncludes();
-                    std::cout << "Includes number   "<< includes1.size() << std::endl;
+                    // std::cout << "Now processing " << absolute_include_path << std::endl;
+                    auto includes1 = ReadIncludes(absolute_include_path);
+                    // std::cout << "Includes number   "<< includes1.size() << std::endl;
                     for (auto i : includes1) {
                           std::cout << absolute_include_path << " includes " << i << std::endl;
 
@@ -153,56 +86,8 @@ class FilesGraph{
                     processedNodes.insert(absolute_include_path);
                 }
 
-
-                // if (terminatingNode == false) {
-                //     std::cout << "Now processing " << absolute_include_path << std::endl;
-                //     // if (processedNodes.find(absolute_include_path) != processedNodes.end()) {
-                //     //     continue;
-                //     // }
-                //     auto includes1 = SourceFile(absolute_include_path).ReadIncludes();
-                //     std::cout << "Includes number   "<< includes1.size() << std::endl;
-                //     for (auto i : includes1) {
-                //           std::cout << absolute_include_path << " includes " << i << std::endl;
-
-                //         includes.push_back(i);
-                //     }
-                // }
-
             }
-            // for (auto include : includes) {
-            //     auto absolute_include = evalPath(include);
-            //     auto includeeHandle = graph.AddNode(absolute_include);
-            //     graph.LinkNodes(includerHandle, includeeHandle);
-
-            //     if (terminatingNode == false) {
-            //         auto includes = SourceFile(absolute_include).ReadIncludes();
-            //         for (auto i : includes) {
-            //             includes.push_back(i);
-            //         }
-            //     }
-            //     // std::string fileName = include;
-            //     // bool terminatingNode = true;
-            //     // for (auto includePath : cc.GetIncludePaths()) {
-            //     //     PathExplorer pe(includePath);
-            //     //     if (pe.Contains(include)){
-            //     //         fileName = includePath + "/" + include;
-            //     //         terminatingNode = false;
-            //     //         break;
-            //     //     }
-            //     // }
-            //     // if (graph.Contains(fileName)) {
-            //     //     graph.LinkNodes(cc.GetSourceFile(), fileName);
-            //     //     continue;
-            //     // }
-            //     // graph.AddNode(fileName);
-            //     // graph.LinkNodes(cc.GetSourceFile(), fileName);
-            //     // if (terminatingNode == false) {
-            //     //     auto includes = SourceFile(fileName).ReadIncludes();
-            //     //     for (auto i : includes) {
-            //     //         includesToVisit.push_back({cc.GetIncludePaths(), i, fileName});
-            //     //     }
-            //     // }
-            // }
+            
             std::cout << graph.Stats() << std::endl;
 
     graph.ForEachNode([](Node & node){
@@ -210,123 +95,9 @@ class FilesGraph{
      });
 
             return true;
-            // std::vector<IncludeToVisit> includesToVisit;
-
-            // for (auto include : includes) {
-            //     std::string fileName = include;
-            //     bool terminatingNode = true;
-            //     for (auto includePath : cc.GetIncludePaths()) {
-            //         PathExplorer pe(includePath);
-            //         if (pe.Contains(include)){
-            //             fileName = includePath + "/" + include;
-            //             terminatingNode = false;
-            //             break;
-            //         }
-            //     }
-            //     if (graph.Contains(fileName)) {
-            //         graph.LinkNodes(cc.GetSourceFile(), fileName);
-            //         continue;
-            //     }
-            //     graph.AddNode(fileName);
-            //     graph.LinkNodes(cc.GetSourceFile(), fileName);
-            //     if (terminatingNode == false) {
-            //         auto includes = SourceFile(fileName).ReadIncludes();
-            //         for (auto i : includes) {
-            //             includesToVisit.push_back({cc.GetIncludePaths(), i, fileName});
-            //         }
-            //     }
-            // }
- 
-
-
+          
         }
 
-        bool UpdateNetwork(CompileCommand & cc){
-            // graph.AddNode(cc.GetSourceFile());
-
-            // auto sourceFilePtr = std::make_shared<SourceFile>(cc.GetSourceFile());
-            // auto includes = sourceFilePtr->ReadIncludes();
-            // std::vector<IncludeToVisit> includesToVisit;
-            // auto includes = sourceFilePtr -> ReadIncludes();
-            // for (auto include : includes) {
-            //     includesToVisit.push_back({cc.GetIncludePaths(), include, sourceFilePtr});
-            // }
-
-            
-
-
-            auto sourceFilePtr = std::make_shared<SourceFile>(cc.GetSourceFile());
-            nodes.push_back(sourceFilePtr);
-
-            std::vector<IncludeToVisit> includesToVisit;
-            auto includes = sourceFilePtr -> ReadIncludes();
-            for (auto include : includes) {
-                includesToVisit.push_back({cc.GetIncludePaths(), include, sourceFilePtr});
-            }
-                
-            while (!includesToVisit.empty())
-            {
-                auto include = includesToVisit.back();
-                includesToVisit.pop_back();
-                // std::cout << " --> Visiting include " << IncludeToVisit::str(include) << std::endl;
-        
-                std::string fileName = include.name;
-                bool terminatingNode = true;
-                //resolve path
-                for (auto includePath : include.includePaths) {
-                    PathExplorer pe(includePath);
-                    if (pe.Contains(include.name)){
-                        fileName = includePath + "/" + include.name;
-                        terminatingNode = false;
-                        break;
-                    } else {
-                        std::cout << include.name << " not found in " << includePath << std::endl;
-                    }
-                }
-           
-            if (std::any_of(nodes.begin(), nodes.end(), [fileName, &include](std::shared_ptr<SourceFile> node){
-                if (node->GetPath() == fileName) {
-                    node->AddIncludedBy(include.includer);
-                    include.includer.lock()->AddInclude(node);
-                    return true;
-                }
-                return false;
-             }))
-             {
-                 continue;
-             }
-            
-            auto sourceFilePtr = std::make_shared<SourceFile>(fileName);
-            sourceFilePtr->AddIncludedBy(include.includer);
-            if (terminatingNode == false) {
-                auto includes = sourceFilePtr->ReadIncludes();
-                for (auto i : includes) {
-                    includesToVisit.push_back({include.includePaths, i, sourceFilePtr});
-                }
-            
-            }
-        
-        std::shared_ptr<SourceFile> spt = include.includer.lock();
-        
-        if (spt){
-            spt->AddInclude(sourceFilePtr);
-        }
-        nodes.push_back(sourceFilePtr);
-        
-        }
-
-        }
-
-        void ForEachNode(std::function<void(std::shared_ptr<SourceFile>)> f) {
-            for (auto i : nodes) {
-                f(i);
-            }
-        }
-                std::vector<std::shared_ptr<SourceFile>> GetNodes() const {
-            return nodes;
-        }
-
-    private:
-        std::vector<std::shared_ptr<SourceFile>> nodes;
+   private:
 };
 
