@@ -8,7 +8,10 @@
 #include<map>
 #include "Edge.hpp"
 #include <sstream>
-
+#include "Graph.hpp"
+#include "Node.hpp"
+#include "Common.hpp"
+#include <set>
 
 
 class SourceFile{
@@ -88,13 +91,170 @@ struct IncludeToVisit {
     }
 };
 class FilesGraph{
+    private:
+        Graph graph;
+        std::set<std::string> processedNodes;
     public:
         FilesGraph(){
         }
         ~FilesGraph(){
         }
+        
+        bool UpdateNetwork2(CompileCommand & cc){
+            
+            std::cout << "Updating network"<<std::endl;
+
+            auto sourceFile = SourceFile(cc.GetSourceFile());
+            auto includerHandle = graph.AddNode(cc.GetSourceFile());
+            processedNodes.insert(cc.GetSourceFile());
+
+            auto includes = sourceFile.ReadIncludes();
+            auto inclduePaths = cc.GetIncludePaths();
+
+            bool terminatingNode = true;
+            
+            auto evalPath = [&inclduePaths, &terminatingNode](std::string include) {
+                for (auto includePath : inclduePaths) {
+                    PathExplorer pe(includePath);
+                    if (pe.Contains(include)){
+                        terminatingNode = false;
+                        return includePath + "/" + include;
+                    }
+                }
+                terminatingNode = true;
+                return include;
+            };
+
+            while(includes.empty() == false) {
+                auto include = includes.back();
+                includes.pop_back();
+
+                auto absolute_include_path = evalPath(include);
+                
+                auto includeeHandle = graph.AddNode(absolute_include_path);
+                graph.LinkNodes(includerHandle, includeeHandle);
+                // processedNodes.insert(cc.GetSourceFile());
+
+                if (processedNodes.find(absolute_include_path) != processedNodes.end()) {
+                    continue;
+                } else 
+                {
+                    std::cout << "Now processing " << absolute_include_path << std::endl;
+                    // if (processedNodes.find(absolute_include_path) != processedNodes.end()) {
+                    //     continue;
+                    // }
+                    auto includes1 = SourceFile(absolute_include_path).ReadIncludes();
+                    std::cout << "Includes number   "<< includes1.size() << std::endl;
+                    for (auto i : includes1) {
+                          std::cout << absolute_include_path << " includes " << i << std::endl;
+
+                        includes.push_back(i);
+                    }
+                    processedNodes.insert(absolute_include_path);
+                }
+
+
+                // if (terminatingNode == false) {
+                //     std::cout << "Now processing " << absolute_include_path << std::endl;
+                //     // if (processedNodes.find(absolute_include_path) != processedNodes.end()) {
+                //     //     continue;
+                //     // }
+                //     auto includes1 = SourceFile(absolute_include_path).ReadIncludes();
+                //     std::cout << "Includes number   "<< includes1.size() << std::endl;
+                //     for (auto i : includes1) {
+                //           std::cout << absolute_include_path << " includes " << i << std::endl;
+
+                //         includes.push_back(i);
+                //     }
+                // }
+
+            }
+            // for (auto include : includes) {
+            //     auto absolute_include = evalPath(include);
+            //     auto includeeHandle = graph.AddNode(absolute_include);
+            //     graph.LinkNodes(includerHandle, includeeHandle);
+
+            //     if (terminatingNode == false) {
+            //         auto includes = SourceFile(absolute_include).ReadIncludes();
+            //         for (auto i : includes) {
+            //             includes.push_back(i);
+            //         }
+            //     }
+            //     // std::string fileName = include;
+            //     // bool terminatingNode = true;
+            //     // for (auto includePath : cc.GetIncludePaths()) {
+            //     //     PathExplorer pe(includePath);
+            //     //     if (pe.Contains(include)){
+            //     //         fileName = includePath + "/" + include;
+            //     //         terminatingNode = false;
+            //     //         break;
+            //     //     }
+            //     // }
+            //     // if (graph.Contains(fileName)) {
+            //     //     graph.LinkNodes(cc.GetSourceFile(), fileName);
+            //     //     continue;
+            //     // }
+            //     // graph.AddNode(fileName);
+            //     // graph.LinkNodes(cc.GetSourceFile(), fileName);
+            //     // if (terminatingNode == false) {
+            //     //     auto includes = SourceFile(fileName).ReadIncludes();
+            //     //     for (auto i : includes) {
+            //     //         includesToVisit.push_back({cc.GetIncludePaths(), i, fileName});
+            //     //     }
+            //     // }
+            // }
+            std::cout << graph.Stats() << std::endl;
+
+    graph.ForEachNode([](Node & node){
+        std::cout << node.Stringify() << std::endl;
+     });
+
+            return true;
+            // std::vector<IncludeToVisit> includesToVisit;
+
+            // for (auto include : includes) {
+            //     std::string fileName = include;
+            //     bool terminatingNode = true;
+            //     for (auto includePath : cc.GetIncludePaths()) {
+            //         PathExplorer pe(includePath);
+            //         if (pe.Contains(include)){
+            //             fileName = includePath + "/" + include;
+            //             terminatingNode = false;
+            //             break;
+            //         }
+            //     }
+            //     if (graph.Contains(fileName)) {
+            //         graph.LinkNodes(cc.GetSourceFile(), fileName);
+            //         continue;
+            //     }
+            //     graph.AddNode(fileName);
+            //     graph.LinkNodes(cc.GetSourceFile(), fileName);
+            //     if (terminatingNode == false) {
+            //         auto includes = SourceFile(fileName).ReadIncludes();
+            //         for (auto i : includes) {
+            //             includesToVisit.push_back({cc.GetIncludePaths(), i, fileName});
+            //         }
+            //     }
+            // }
+ 
+
+
+        }
 
         bool UpdateNetwork(CompileCommand & cc){
+            // graph.AddNode(cc.GetSourceFile());
+
+            // auto sourceFilePtr = std::make_shared<SourceFile>(cc.GetSourceFile());
+            // auto includes = sourceFilePtr->ReadIncludes();
+            // std::vector<IncludeToVisit> includesToVisit;
+            // auto includes = sourceFilePtr -> ReadIncludes();
+            // for (auto include : includes) {
+            //     includesToVisit.push_back({cc.GetIncludePaths(), include, sourceFilePtr});
+            // }
+
+            
+
+
             auto sourceFilePtr = std::make_shared<SourceFile>(cc.GetSourceFile());
             nodes.push_back(sourceFilePtr);
 
@@ -170,128 +330,3 @@ class FilesGraph{
         std::vector<std::shared_ptr<SourceFile>> nodes;
 };
 
-using NodeData = std::string;
-
-class Node{
-    public:
-        Node(NodeData data) : data(data){
-        }
-        void CallbackEdgeTo(std::shared_ptr<Edge> edge){
-            edgesTo.push_back(edge);
-        }
-        void CallbackEdgeFrom(std::shared_ptr<Edge> edge){
-            edgesFrom.push_back(edge);
-        }
-
-        NodeData GetData() const {
-            return data;
-        }
-
-        std::string Stringify() const {
-            std::stringstream ss;
-            ss << "Node data: " << std::endl;
-            ss << data << std::endl;
-            ss << "Edges from: " << std::endl;
-            for (auto i : edgesFrom) {
-                ss << i.lock()->GetFrom() << " - " << i.lock()->GetTo() << std::endl;;
-            }
-            ss << "Edges to: " << std::endl;
-            for (auto i : edgesTo) {
-                ss << i.lock()->GetFrom() << " - " << i.lock()->GetTo() << std::endl;;
-            }
-            return ss.str();
-        }
-
-    private:
-        NodeData data;
-        std::vector<std::weak_ptr<Edge>> edgesFrom;
-        std::vector<std::weak_ptr<Edge>> edgesTo;
-};
-
-
-
-class Graph{
-
-private:
-    NodeHandle currentNode;
-public:
-    Graph(){
-        currentNode = 1;
-    }
-
-    ~Graph(){
-    }
-
-    std::string Stats(){
-        std::stringstream ss;
-        ss << "Graph stats: " << std::endl;
-        ss << "Nodes: " << nodes.size() << std::endl;
-        ss << "Edges: " << edges.size() << std::endl;
-        return ss.str();
-    }
-
-    NodeHandle AddNode(NodeData data){
-
-        if (dataToHandle.find(data) != dataToHandle.end()) {
-            return dataToHandle[data];
-        }
-
-        nodes.insert({currentNode, std::make_shared<Node>(data)});
-        dataToHandle.insert({data, currentNode});
-        auto nodeHandle = currentNode;
-        std::cout << "Node " << data << " added with handle " << nodeHandle << std::endl;
-        currentNode++;
-        return nodeHandle;
-    }
-
-    void LinkNodes(NodeHandle from, NodeHandle to){
-        
-        if (std::any_of(edges.begin(), edges.end(), 
-            [from, to](std::shared_ptr<Edge> edge)
-        {
-            if (edge->GetFrom() == from && edge->GetTo() == to) {
-                return true;
-            }
-            return false;
-        }))
-        {
-            auto a = nodes.find(from)->second->GetData();
-            auto b = nodes.find(to)->second->GetData();
-            std::cout << "Link "<<a<<" - "<<b <<" already exists" << std::endl;
-            return;
-        }
-
-
-        if (nodes.find(from) == nodes.end() || nodes.find(to) == nodes.end()) {
-            throw std::runtime_error("Node not found");
-        }
-
-        auto ptr = std::make_shared<Edge>(from, to);
-        edges.emplace_back(ptr);
-        
-
-        auto it = nodes.find(from);
-        if (it == nodes.end()) {
-            throw std::runtime_error("Node not found");
-        }
-        it->second->CallbackEdgeFrom(ptr);
-        
-        it = nodes.find(to);
-        if (it == nodes.end()) {
-            throw std::runtime_error("Node not found");
-        }
-        it->second->CallbackEdgeTo(ptr);
-    }
-
-    void ForEachNode(std::function<void(Node &)> f) {
-        for (auto i : nodes) {
-            f(*i.second);
-        }
-    }
-
-    std::unordered_map<NodeData, NodeHandle> dataToHandle;
-    std::unordered_map<NodeHandle, std::shared_ptr<Node>> nodes;
-    std::vector<std::shared_ptr<Edge>> edges;
-    private:
-
-};

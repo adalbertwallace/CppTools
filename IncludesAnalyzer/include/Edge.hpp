@@ -1,8 +1,6 @@
 #pragma once
 
-using EdgeHandle = unsigned;
-using NodeHandle = int;
-
+#include "Common.hpp"
 
 class Edge{
     public:

@@ -6,7 +6,7 @@
 #include <memory>
 #include <filesystem>
 #include <iostream>
-
+#include "Graph.hpp"
 #include <sys/stat.h>
 #include <unistd.h>
 #include <string>
@@ -46,18 +46,18 @@ class Report{
 
 int main(int argc, char *argv[]) {
 
-    Graph g;
+    // Graph g;
     
-    g.LinkNodes(g.AddNode("a"), g.AddNode("b"));
-    g.LinkNodes(g.AddNode("b"), g.AddNode("c"));
+    // g.LinkNodes(g.AddNode("a"), g.AddNode("b"));
+    // g.LinkNodes(g.AddNode("b"), g.AddNode("c"));
 
     // g.LinkNodes(g.AddNode("a"), g.AddNode("b"));
     
-    std::cout << g.Stats() << std::endl;
+    // std::cout << g.Stats() << std::endl;
 
-    g.ForEachNode([](Node & node){
-        std::cout << node.Stringify() << std::endl;
-    });
+    // g.ForEachNode([](Node & node){
+    //     std::cout << node.Stringify() << std::endl;
+    // });
 
     // g.AddNode("b");
     // g.nodes["a"].setX(1);   
@@ -80,14 +80,14 @@ int main(int argc, char *argv[]) {
     
     FilesGraph graph;
     for (auto cc : ccs) {
-        graph.UpdateNetwork(cc);
+        graph.UpdateNetwork2(cc);
     }
-    graph.ForEachNode([](std::shared_ptr<SourceFile> node){
-        std::cout <<"PATH: "<< node->GetPath() << std::endl;
-    });
-    auto x = graph.GetNodes();
-    std::cout << "Items: "<< x.size() << std::endl;
-    Report::Print(x);
+    // graph.ForEachNode([](std::shared_ptr<SourceFile> node){
+    //     std::cout <<"PATH: "<< node->GetPath() << std::endl;
+    // });
+    // auto x = graph.GetNodes();
+    // std::cout << "Items: "<< x.size() << std::endl;
+    // Report::Print(x);
 
 
     return 0;
