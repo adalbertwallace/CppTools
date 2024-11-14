@@ -1,12 +1,11 @@
 #include <iostream>
 #include "compile_commands_reader.hpp"
-#include "source_file_reader.hpp"
 #include "path_explorer.hpp"
 #include "source_file.hpp"
 #include <memory>
 #include <filesystem>
 #include <iostream>
-#include "Graph.hpp"
+#include "graph.hpp"
 #include <sys/stat.h>
 #include <unistd.h>
 #include <string>
@@ -17,53 +16,64 @@ bool file_exists(const std::string& name) {
     return (stat (name.c_str(), &buffer) == 0);
 }
 
+void test(){
+    Graph graph;
+    auto a = graph.AddNode("a");
+    auto b = graph.AddNode("b");
+    auto c = graph.AddNode("c");
+    auto d = graph.AddNode("d");
+    auto e = graph.AddNode("e");
+    auto f = graph.AddNode("f");
+    auto g = graph.AddNode("g");
+    auto h = graph.AddNode("h");
+    auto i = graph.AddNode("i");
+
+    graph.LinkNodes(a,b);
+    graph.LinkNodes(a,d);
+    graph.LinkNodes(b,c);
+    graph.LinkNodes(d,e);
+    graph.LinkNodes(d,f);
+    graph.LinkNodes(f,h);
+    graph.LinkNodes(f,g);
+    graph.LinkNodes(e,i);
+    graph.LinkNodes(g,i);
+
+    // g.LinkNodes(g.AddNode("a"), g.AddNode("b"));
+    std::cout << "===" << std::endl;
+    std::cout << graph.Stats() << std::endl;
+    std::cout << "===" << std::endl;
+
+    auto printPathDownward = [&graph](std::vector<NodeHandle> visited){
+        for (auto nodeHandle : visited) {
+            auto node = graph.GetNode(nodeHandle);
+            if (node.IsTerminal()) {
+                std::cout << node.GetData();
+            } else {
+                std::cout << node.GetData() <<" -> ";
+            }           
+        }
+        std::cout << std::endl;
+    };
+
+    auto printPathUpward = [&graph](std::vector<NodeHandle> visited){
+        for (auto nodeHandle : visited) {
+            auto node = graph.GetNode(nodeHandle);
+            if (node.IsRoot()) {
+                std::cout << node.GetData();
+            } else {
+                std::cout << node.GetData() <<" -> ";
+            }           
+        }
+        std::cout << std::endl;
+    };
 
 
-// void dfs (std::shared_ptr<SourceFile> node, std::string prefix = "") {
-//     if (node->GetIncludes().empty()) {
-//         std::cout << prefix << node->GetPath() << std::endl;
-//         return;
-//     }
-//     for (auto i : node->GetIncludes()) {
-//         dfs(i.lock(), prefix + node->GetPath() + " -> ");
-//     } 
+    graph.DfsDownward(a, printPathDownward);
+    graph.DfsUpward(i, printPathUpward);
 
-// }
-// class Report{
-//     public:
-//     static std::string Print(std::vector<std::shared_ptr<SourceFile>> & sourceFiles){
-//         for (auto i : sourceFiles) {
-//             std::cout << SourceFile::str(*i)<<std::endl;
-//             auto isRootNode =i->GetIncludedBy().empty();
-//             if (isRootNode) {
-//                 dfs(i);
-//             }
-//         }
-//         return "";
-//     }
 
-// };
-
+}
 int main(int argc, char *argv[]) {
-
-    // Graph g;
-    
-    // g.LinkNodes(g.AddNode("a"), g.AddNode("b"));
-    // g.LinkNodes(g.AddNode("b"), g.AddNode("c"));
-
-    // g.LinkNodes(g.AddNode("a"), g.AddNode("b"));
-    
-    // std::cout << g.Stats() << std::endl;
-
-    // g.ForEachNode([](Node & node){
-    //     std::cout << node.Stringify() << std::endl;
-    // });
-
-    // g.AddNode("b");
-    // g.nodes["a"].setX(1);   
-    // std::filesystem::path cwd = std::filesystem::current_path() // "filename.txt";
-    // std::cout << std::filesystem::current_path() << std::endl;   
-
     if (argc < 2) {
         std::cerr << "Error: Path to compile commands file not provided." << std::endl;
         return 1;
@@ -82,13 +92,15 @@ int main(int argc, char *argv[]) {
     for (auto cc : ccs) {
         graph.UpdateNetwork(cc);
     }
-    // graph.ForEachNode([](std::shared_ptr<SourceFile> node){
-    //     std::cout <<"PATH: "<< node->GetPath() << std::endl;
-    // });
-    // auto x = graph.GetNodes();
-    // std::cout << "Items: "<< x.size() << std::endl;
-    // Report::Print(x);
 
+    graph.Print();
+    std::cout << "===" << std::endl;
+    graph.PrintU();
+    std::cout << "===" << std::endl;
+
+    graph.GetDependenciesOf("/home/wallace/Workspace/CppTools/sampleProject/src/main.cpp");
+    std::cout << "===" << std::endl;
+    graph.GetUsersOf("/home/wallace/Workspace/CppTools/sampleProject/build/../include/main_inc1_helper.hpp");
 
     return 0;
 }

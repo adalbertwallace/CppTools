@@ -6,7 +6,6 @@ add_executable(IncludesAnalyzer
     src/main.cpp 
     src/compile_commands_reader.cpp 
     src/path_explorer.cpp
-    src/source_file_reader.cpp
 )
 
 target_include_directories(

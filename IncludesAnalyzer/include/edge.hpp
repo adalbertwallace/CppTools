@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Common.hpp"
+#include "common.hpp"
 
 class Edge{
     public:
@@ -15,7 +15,6 @@ class Edge{
             return to;
         }
     private:
-        
         NodeHandle from;
         NodeHandle to;
 };
