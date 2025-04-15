@@ -17,6 +17,7 @@ target_include_directories(
     PRIVATE 
         include
 )
+
 # Add subdirectories for different components of the project
 
 # Export compile commands

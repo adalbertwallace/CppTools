@@ -1,8 +1,8 @@
-#pragma once
 #include <optional>
 #include "common.hpp"
 #include "node.hpp"
 #include "edge.hpp"
+#include "graph.hpp"
 #include <unordered_map>
 #include <memory>
 #include <vector>
@@ -10,21 +10,16 @@
 #include <iostream>
 #include <algorithm>
 #include <sstream>
+#include <stack>
 
-
-class Graph{
-
-private:
-    NodeHandle currentNode;
-public:
-    Graph(){
+    Graph::Graph(){
         currentNode = 1;
     }
 
-    ~Graph(){
+    Graph::~Graph(){
     }
 
-    std::string Stats(){
+    std::string Graph::Stats(){
         std::stringstream ss;
         ss << "Graph stats: " << std::endl;
         ss << "Nodes: " << nodes.size() << std::endl;
@@ -32,8 +27,7 @@ public:
         return ss.str();
     }
 
-    NodeHandle AddNode(NodeData data){
-
+    NodeHandle Graph::AddNode(NodeData data){
         if (dataToHandle.find(data) != dataToHandle.end()) {
             return dataToHandle[data];
         }
@@ -41,12 +35,11 @@ public:
         nodes.insert({currentNode, std::make_shared<Node>(data)});
         dataToHandle.insert({data, currentNode});
         auto nodeHandle = currentNode;
-        std::cout << "[Graph]: New node handle: "<<nodeHandle <<" data: " << data<< std::endl;
         currentNode++;
         return nodeHandle;
     }
 
-    void LinkNodes(NodeHandle from, NodeHandle to){
+    void Graph::LinkNodes(NodeHandle from, NodeHandle to){
         
         if (std::any_of(edges.begin(), edges.end(), 
             [from, to](std::shared_ptr<Edge> edge)
@@ -59,7 +52,6 @@ public:
         {
             auto a = nodes.find(from)->second->GetData();
             auto b = nodes.find(to)->second->GetData();
-            std::cout << "[Graph]: Link "<<a<<" - "<<b <<" already exists" << std::endl;
             return;
         }
 
@@ -85,23 +77,61 @@ public:
         it->second->CallbackEdgeTo(ptr);
     }
 
-    Node & GetNode(NodeHandle handle)  {
+    Node & Graph::GetNode(NodeHandle handle)  {
         return *nodes[handle];
     }
 
-    void ForEachNode(std::function<void(NodeHandle, Node &)> f) {
+    void Graph::ForEachNode(std::function<void(NodeHandle, Node &)> f) {
         for (auto i : nodes) {
             f(i.first, *i.second);
         }
     }
    
-    bool Contains(NodeData data){
+    bool Graph::Contains(NodeData data){
         return dataToHandle.find(data) != dataToHandle.end();
     }
 
 
-    void DfsDownward(NodeHandle handle, std::function<void(std::vector<NodeHandle>)> f){
-        std::vector<NodeHandle> visited;
+    void Graph::DfsDownwardNonRec(NodeHandle handle, std::function<void(std::vector<NodeHandle>)> f){
+        size_t depth = 0;
+
+        std::vector<std::pair<NodeHandle,size_t>> stack;
+        std::vector<std::pair<NodeHandle,size_t>> visited;
+
+        stack.push_back({handle, depth});
+        depth++;
+
+        while (!stack.empty()) {
+            auto [currentHandle, currentDepth] = stack.back();
+            stack.pop_back();
+            
+            while (visited.size() > 0 && visited.back().second >= currentDepth) {
+                visited.pop_back();
+            }
+
+            visited.push_back({currentHandle, currentDepth});            
+            
+            auto node = nodes[currentHandle];
+
+            if (node->IsTerminal()) {
+                
+                std::vector<NodeHandle> p = {};
+                for (auto i : visited) {
+                    p.push_back(i.first);
+                }
+                f(p);
+                visited.pop_back();
+                continue;
+            }
+
+            for (auto nextHandle : node->NodesOutcoming()) {
+                stack.push_back({nextHandle, currentDepth + 1});
+            }
+        }
+    }
+
+    void Graph::DfsDownward(NodeHandle handle, std::function<void(std::vector<NodeHandle>)> f){
+        std::vector<NodeHandle> visited={};
         visited.push_back(handle);
     
         auto node = nodes[handle];
@@ -117,7 +147,7 @@ public:
     }
 
 
-    void DfsUpward (NodeHandle handle, std::function<void(std::vector<NodeHandle>)> f){
+    void Graph::DfsUpward (NodeHandle handle, std::function<void(std::vector<NodeHandle>)> f){
         std::vector<NodeHandle> visited;
         visited.push_back(handle);
     
@@ -133,16 +163,14 @@ public:
         }
     }
 
-    std::optional<NodeHandle> GetNodeHandle(NodeData data){
+    std::optional<NodeHandle> Graph::GetNodeHandle(NodeData data){
         if (dataToHandle.find(data) == dataToHandle.end()) {
             return std::nullopt;
         }
         return dataToHandle[data];
     }
 
-    private:
-
-    void DfsInternalDownward(NodeHandle handle, std::function<void(std::vector<NodeHandle>)> f, std::vector<NodeHandle> visited){
+    void Graph::DfsInternalDownward(NodeHandle handle, std::function<void(std::vector<NodeHandle>)> f, std::vector<NodeHandle> visited){
         auto node = nodes[handle];
         visited.push_back(handle);
         if (node->IsTerminal()) {
@@ -154,7 +182,7 @@ public:
             DfsInternalDownward(i,f, visited);
         }
     }
-    void DfsInternalUpward(NodeHandle handle, std::function<void(std::vector<NodeHandle>)> f, std::vector<NodeHandle> visited){
+    void Graph::DfsInternalUpward(NodeHandle handle, std::function<void(std::vector<NodeHandle>)> f, std::vector<NodeHandle> visited){
         auto node = nodes[handle];
         visited.push_back(handle);
         if (node->IsRoot()) {
@@ -166,9 +194,3 @@ public:
             DfsInternalUpward(i,f, visited);
         }
     }
-
-    std::unordered_map<NodeData, NodeHandle> dataToHandle;
-    std::unordered_map<NodeHandle, std::shared_ptr<Node>> nodes;
-    std::vector<std::shared_ptr<Edge>> edges;
-
-};

@@ -1,0 +1,1 @@
+rm -R  build/*; cmake -G Ninja -B build -S . && ninja -C build
