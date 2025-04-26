@@ -11,7 +11,6 @@
 #include <algorithm>
 #include <sstream>
 
-
 class Graph{
 
 private:
@@ -20,21 +19,24 @@ public:
     Graph();
     ~Graph();
     
+    enum class WalkDirection{
+        upward,
+        downward
+    };
+
     NodeHandle AddNode(NodeData data);
     
     void LinkNodes(NodeHandle from, NodeHandle to);
     Node & GetNode(NodeHandle handle);
     
     void ForEachNode(std::function<void(NodeHandle, Node &)> f) ;
-    
-    
-    void DfsDownward(NodeHandle handle, std::function<void(std::vector<NodeHandle>)> f);
-    void DfsDownwardNonRec(NodeHandle handle, std::function<void(std::vector<NodeHandle>)> f);
-    void DfsUpward (NodeHandle handle, std::function<void(std::vector<NodeHandle>)> f);
-    std::optional<NodeHandle> GetNodeHandle(NodeData data);
+    void Walk(WalkDirection direction, NodeHandle handle, std::function<void(std::vector<NodeHandle>)> f);
+
     private:
-    void DfsInternalDownward(NodeHandle handle, std::function<void(std::vector<NodeHandle>)> f, std::vector<NodeHandle> visited);
-    void DfsInternalUpward(NodeHandle handle, std::function<void(std::vector<NodeHandle>)> f, std::vector<NodeHandle> visited);
+    
+    void Walk(NodeHandle handle, std::function<void(std::vector<NodeHandle>)> f, 
+              std::function<bool(std::shared_ptr<Node>)> no_more_nodes,
+              std::function<std::vector<NodeHandle>(std::shared_ptr<Node>)> get_next_nodes);
     private:
     std::string Stats();
     bool Contains(NodeData data);

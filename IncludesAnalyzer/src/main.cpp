@@ -39,13 +39,17 @@ int main(int argc, char *argv[]) {
 
     std::cout << "Dependencies: "<<std::endl;
 
+    const size_t sources_count = graph.GetSources().size();
+    size_t current_source_idx = 1;
     for (auto src : graph.GetSources()){
            auto deps = graph.GetDependenciesOf(src);
            
-           std::for_each(deps.begin(), deps.end(), [&src](std::string dep){
-               std::cout <<"Source: " <<  src << " depends on " <<dep<< std::endl;
+           std::for_each(deps.begin(), deps.end(), [&src, &sources_count, &current_source_idx](std::string dep){
+               std::cout <<"File["<<current_source_idx<<" of " << sources_count << "]: " <<  src << " depends on " <<dep<< std::endl;
            });
+           current_source_idx++;
     }
+
 
     return 0;
 }

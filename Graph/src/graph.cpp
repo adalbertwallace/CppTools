@@ -91,8 +91,29 @@
         return dataToHandle.find(data) != dataToHandle.end();
     }
 
+    void Graph::Walk(WalkDirection direction, NodeHandle handle, std::function<void(std::vector<NodeHandle>)> f)
+    {
+        if (direction == WalkDirection::upward) {
+            Walk(handle, f, [](std::shared_ptr<Node> node ){
+                return node->IsRoot();
+            }, [](std::shared_ptr<Node> node ){
+                return node->NodesIncoming();
+            });
+        } else if (direction == WalkDirection::downward) {
+            Walk(handle, f, [](std::shared_ptr<Node> node ){
+                return node->IsTerminal();
+            }, [](std::shared_ptr<Node> node ){
+                return node->NodesOutcoming();
+            });
+        } else {
+            throw std::runtime_error("[Graph]: Unknown walk direction");
+        }
+    }
+    void Graph::Walk(NodeHandle handle, std::function<void(std::vector<NodeHandle>)> f
+        , std::function<bool(std::shared_ptr<Node>)> no_more_nodes,
+        std::function<std::vector<NodeHandle>(std::shared_ptr<Node>)> get_next_nodes) {
+        
 
-    void Graph::DfsDownwardNonRec(NodeHandle handle, std::function<void(std::vector<NodeHandle>)> f){
         size_t depth = 0;
 
         std::vector<std::pair<NodeHandle,size_t>> stack;
@@ -113,8 +134,7 @@
             
             auto node = nodes[currentHandle];
 
-            if (node->IsTerminal()) {
-                
+            if (no_more_nodes(node)) {
                 std::vector<NodeHandle> p = {};
                 for (auto i : visited) {
                     p.push_back(i.first);
@@ -124,73 +144,8 @@
                 continue;
             }
 
-            for (auto nextHandle : node->NodesOutcoming()) {
+            for (auto nextHandle : get_next_nodes(node)) {
                 stack.push_back({nextHandle, currentDepth + 1});
             }
-        }
-    }
-
-    void Graph::DfsDownward(NodeHandle handle, std::function<void(std::vector<NodeHandle>)> f){
-        std::vector<NodeHandle> visited={};
-        visited.push_back(handle);
-    
-        auto node = nodes[handle];
-    
-        if (node->IsTerminal()) {
-            f(visited);
-            return;
-        }
-        
-        for (auto i : node->NodesOutcoming()) {
-            DfsInternalDownward(i, f, visited);
-        }
-    }
-
-
-    void Graph::DfsUpward (NodeHandle handle, std::function<void(std::vector<NodeHandle>)> f){
-        std::vector<NodeHandle> visited;
-        visited.push_back(handle);
-    
-        auto node = nodes[handle];
-    
-        if (node->IsRoot()) {
-            f(visited);
-            return;
-        }
-        
-        for (auto i : node->NodesIncoming()) {
-            DfsInternalUpward(i, f, visited);
-        }
-    }
-
-    std::optional<NodeHandle> Graph::GetNodeHandle(NodeData data){
-        if (dataToHandle.find(data) == dataToHandle.end()) {
-            return std::nullopt;
-        }
-        return dataToHandle[data];
-    }
-
-    void Graph::DfsInternalDownward(NodeHandle handle, std::function<void(std::vector<NodeHandle>)> f, std::vector<NodeHandle> visited){
-        auto node = nodes[handle];
-        visited.push_back(handle);
-        if (node->IsTerminal()) {
-            f(visited);
-            return;
-        }
-
-        for (auto i : node->NodesOutcoming()) {
-            DfsInternalDownward(i,f, visited);
-        }
-    }
-    void Graph::DfsInternalUpward(NodeHandle handle, std::function<void(std::vector<NodeHandle>)> f, std::vector<NodeHandle> visited){
-        auto node = nodes[handle];
-        visited.push_back(handle);
-        if (node->IsRoot()) {
-            f(visited);
-            return;
-        }
-
-        for (auto i : node->NodesIncoming()) {
-            DfsInternalUpward(i,f, visited);
         }
     }

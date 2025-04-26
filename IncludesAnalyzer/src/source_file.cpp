@@ -3,6 +3,7 @@
 #include <filesystem>
 
 std::vector<std::string> ReadIncludes(std::string path) {
+    std::cout << "Reading includes for file: " << path << std::endl;
     std::ifstream fileStream(path.c_str());
     std::string line;
     std::regex includeRegex("^\\s*#include\\s*<(.*)>");
@@ -27,67 +28,61 @@ void FilesGraph::UpdateNetwork(CompileCommand &cc) {
     auto sourceFile = cc.GetSourceFile();
     auto includePaths = cc.GetIncludePaths();
 
-    std::vector<std::string> includers;
-    includers.push_back(sourceFile);
+    std::vector<std::string> files_to_process;
+    files_to_process.push_back(sourceFile);
 
-    auto evalPath = [&includePaths](std::string include) {
-        for (auto includePath : includePaths) {
-            PathExplorer pe(includePath);
-            if (pe.Contains(include)) {
-                return includePath + "/" + include;
+    auto pathEvaluator = [](std::vector<std::string> & includePaths){
+        return [includePaths](std::string include){
+            for (auto includePath : includePaths) {
+                PathExplorer pe(includePath);
+                if (pe.Contains(include)) {
+                    return includePath + "/" + include;
+                }
             }
-        }
-        return include;
+            return include;
+        };
     };
 
-    while (!includers.empty()) {
-        auto includer = includers.back();
-        includers.pop_back();
-        if (processedNodes.find(includer) != processedNodes.end()) {
-            // std::cout << "Node " << includer << " already processed" << std::endl;
+    while (!files_to_process.empty()) {
+        auto file_being_processed = files_to_process.back();
+        files_to_process.pop_back();
+        
+        if (fileToHandle.find(file_being_processed) != fileToHandle.end()) {
             continue;
         }
 
-        auto short_includes = ReadIncludes(includer);
+        auto short_includes = ReadIncludes(file_being_processed);
         auto includes = std::vector<std::string>();
-        std::for_each(short_includes.begin(), short_includes.end(), [&includes, &evalPath](std::string &include) {
-            includes.push_back(evalPath(include));
-        });
+        std::transform(short_includes.begin(), short_includes.end(), std::back_inserter(includes), pathEvaluator(includePaths));
 
         for (auto include : includes) {
-            auto includerHandle = graph.AddNode(includer);
-            auto includeeHandle = graph.AddNode(include);
-            graph.LinkNodes(includerHandle, includeeHandle);
-            includers.push_back(include);
+           
+            auto handle = graph.AddNode(file_being_processed);
+            fileToHandle.insert({file_being_processed, handle});
+            auto includeHandle = graph.AddNode(include);
+
+            graph.LinkNodes(handle, includeHandle);
+            files_to_process.push_back(include);
         }
-        processedNodes.insert(includer);
-        if (includer == sourceFile) {
-            source_files.push_back(includer);
-            // auto sourceFileHandle = graph.GetNodeHandle(sourceFile);
-            // if (sourceFileHandle.has_value()) {
-                // graph.LinkNodes(sourceFileHandle.value(), includerHandle);
-            // }
+
+        if (file_being_processed == sourceFile) {
+            source_files.push_back(file_being_processed);
         }
     }
-}
-
-void FilesGraph::PrintStats() {
-    graph.ForEachNode([](NodeHandle, Node &node) {
-        std::cout << node.Stringify() << std::endl;
-    });
 }
 
 std::vector<std::string> FilesGraph::GetDependenciesOf(std::string include) {
     std::vector<std::string> dependencies = {};
-    auto handle = graph.GetNodeHandle(include);
-    if (!handle.has_value()) {
+    auto it = fileToHandle.find(include);
+    if ( it == fileToHandle.end()) {
         std::cout << "Node " << include << " not found" << std::endl;
         return dependencies;
     }
+    NodeHandle handle = it->second;
 
     auto listDependencies = [this, &handle, &dependencies](std::vector<NodeHandle> visited) {
         for (auto nodeHandle : visited) {
-            if (nodeHandle == handle.value()) {
+            if (nodeHandle == handle) {
                 //skip root node
                 continue;
             }
@@ -111,67 +106,6 @@ std::vector<std::string> FilesGraph::GetDependenciesOf(std::string include) {
         std::cout << std::endl;
     };
     
-    graph.DfsDownwardNonRec(handle.value(), listDependencies);
+    graph.WalkDownward(handle, listDependencies);
     return dependencies;
-}
-
-void FilesGraph::GetUsersOf(std::string include) {
-    auto handle = graph.GetNodeHandle(include);
-    if (!handle.has_value()) {
-        std::cout << "Node " << include << " not found" << std::endl;
-        return;
-    }
-
-    auto printPathUpward = [this](std::vector<NodeHandle> visited) {
-        for (auto nodeHandle : visited) {
-            auto node = this->graph.GetNode(nodeHandle);
-            if (node.IsRoot()) {
-                std::cout << node.GetData();
-            } else {
-                std::cout << node.GetData() << " -> ";
-            }
-        }
-        std::cout << std::endl;
-    };
-    graph.DfsUpward(handle.value(), printPathUpward);
-}
-
-void FilesGraph::PrintU() {
-    auto printPathDownward = [this](std::vector<NodeHandle> visited) {
-        for (auto nodeHandle : visited) {
-            auto node = this->graph.GetNode(nodeHandle);
-            if (node.IsRoot()) {
-                std::cout << node.GetData();
-            } else {
-                std::cout << node.GetData() << " -> ";
-            }
-        }
-        std::cout << std::endl;
-    };
-
-    graph.ForEachNode([this, &printPathDownward](NodeHandle handle, Node &node) {
-        if (node.IsTerminal()) {
-            this->graph.DfsUpward(handle, printPathDownward);
-        }
-    });
-}
-
-void FilesGraph::Print() {
-    auto printPathDownward = [this](std::vector<NodeHandle> visited) {
-        for (auto nodeHandle : visited) {
-            auto node = this->graph.GetNode(nodeHandle);
-            if (node.IsTerminal()) {
-                std::cout << node.GetData();
-            } else {
-                std::cout << node.GetData() << " -> ";
-            }
-        }
-        std::cout << std::endl;
-    };
-
-    graph.ForEachNode([this, &printPathDownward](NodeHandle handle, Node &node) {
-        if (node.IsRoot()) {
-            this->graph.DfsDownward(handle, printPathDownward);
-        }
-    });
 }
