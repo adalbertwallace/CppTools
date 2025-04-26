@@ -13,8 +13,7 @@
 
 class Graph{
 
-private:
-    NodeHandle currentNode;
+
 public:
     Graph();
     ~Graph();
@@ -34,10 +33,11 @@ public:
 
     private:
     
+    NodeHandle currentNode;
+    
     void Walk(NodeHandle handle, std::function<void(std::vector<NodeHandle>)> f, 
               std::function<bool(std::shared_ptr<Node>)> no_more_nodes,
               std::function<std::vector<NodeHandle>(std::shared_ptr<Node>)> get_next_nodes);
-    private:
     std::string Stats();
     bool Contains(NodeData data);
     std::unordered_map<NodeData, NodeHandle> dataToHandle;
