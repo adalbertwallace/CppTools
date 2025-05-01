@@ -17,7 +17,8 @@ public:
     }
 
     void ApplyMapping(const std::string& from, const std::string& to) {
-        
+        directory.replace(directory.find(from), from.length(), to);
+
         sourceFile.replace(sourceFile.find(from), from.length(), to);
         
         for (auto& i : includePaths) {
