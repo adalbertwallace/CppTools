@@ -106,6 +106,6 @@ std::vector<std::string> FilesGraph::GetDependenciesOf(std::string include) {
         std::cout << std::endl;
     };
     
-    graph.WalkDownward(handle, listDependencies);
+    graph.Walk(Graph::WalkDirection::downward, handle, listDependencies);
     return dependencies;
 }

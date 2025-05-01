@@ -17,6 +17,9 @@ bool file_exists(const std::string& name) {
 }
 
 int main(int argc, char *argv[]) {
+    std::string map_from = "/home/wallace/Workspace/CppTools_impl_in_cpp/sampleProject";
+    std::string map_to = "/home/wallace/Workspace/CppTools_impl_in_cpp/sampleProject2";
+
     if (argc < 2) {
         std::cerr << "Error: Path to compile commands file not provided." << std::endl;
         return 1;
@@ -30,6 +33,12 @@ int main(int argc, char *argv[]) {
     
     auto r = CompileCommandsReader(compileCommandsFilePath);
     auto ccs = r.Read();
+
+    std::for_each(ccs.begin(), ccs.end(), [&map_from, &map_to](CompileCommand& cc){
+        std::cout << "Before mapping: " << cc.ToString() << std::endl;
+        cc.ApplyMapping(map_from, map_to);
+        std::cout << "After mapping: " << cc.ToString() << std::endl;
+    });
 
     FilesGraph graph;
     for (auto cc : ccs) {

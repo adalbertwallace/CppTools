@@ -17,6 +17,9 @@ public:
     }
 
     void ApplyMapping(const std::string& from, const std::string& to) {
+        
+        sourceFile.replace(sourceFile.find(from), from.length(), to);
+        
         for (auto& i : includePaths) {
             if (i.find(from) != std::string::npos) {
                 i.replace(i.find(from), from.length(), to);
@@ -35,11 +38,11 @@ public:
     }
 
     std::string ToString() const {
-        std::string result = "Directory: " + directory + " ";
-        result += "Source file: " + sourceFile + " ";
-        result += "Include paths: ";
+        std::string result = "Directory: " + directory + "\n";
+        result += "Source file: " + sourceFile + "\n";
+        result += "Include paths:\n";
         for (auto i : includePaths) {
-            result += i + " ";
+            result += i + "\n";
         }
         return result;
     }
