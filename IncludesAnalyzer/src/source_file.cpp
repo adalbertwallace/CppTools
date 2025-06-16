@@ -1,9 +1,10 @@
 #include "source_file.hpp"
 #include "path_explorer.hpp" // Assuming PathExplorer is defined here
 #include <filesystem>
+#include <sstream>
 
 std::vector<std::string> ReadIncludes(std::string path) {
-    std::cout << "Reading includes for file: " << path << std::endl;
+    // std::cout << "Reading includes for file: " << path << std::endl;
     std::ifstream fileStream(path.c_str());
     std::string line;
     std::regex includeRegex("^\\s*#include\\s*<(.*)>");
@@ -71,7 +72,17 @@ void FilesGraph::UpdateNetwork(CompileCommand &cc) {
     }
 }
 
-std::vector<std::string> FilesGraph::GetDependenciesOf(std::string include) {
+std::vector<std::string> FilesGraph::ListDependenciesOf(std::string file)
+{
+    return GetDependenciesOf(file, false);
+}
+
+std::vector<std::string> FilesGraph::ListChainOfDependenciesOf(std::string file){
+    return GetDependenciesOf(file, true);
+}
+
+
+std::vector<std::string> FilesGraph::GetDependenciesOf(std::string include, bool displayChain) {
     std::vector<std::string> dependencies = {};
     auto it = fileToHandle.find(include);
     if ( it == fileToHandle.end()) {
@@ -80,32 +91,48 @@ std::vector<std::string> FilesGraph::GetDependenciesOf(std::string include) {
     }
     NodeHandle handle = it->second;
 
-    auto listDependencies = [this, &handle, &dependencies](std::vector<NodeHandle> visited) {
+    auto listDependencies = [this, &handle, &dependencies, &include](std::vector<NodeHandle> visited) {
+        std::vector<std::string> deps;
         for (auto nodeHandle : visited) {
             if (nodeHandle == handle) {
                 //skip root node
                 continue;
             }
-
             auto node = this->graph.GetNode(nodeHandle);
-            dependencies.push_back(node.GetData());
-            // std::cout << "Data: " << std::filesystem::path(node.GetData()).lexically_normal() << std::endl;
+            deps.push_back(node.GetData());
         }
-        // std::cout << std::endl;
+
+        std::stringstream ss;
+        ss << include <<" includes ";
+        std::for_each(deps.begin(), deps.end(), [&](const std::string& dep){ 
+            auto p = std::filesystem::path(dep);
+            if (std::filesystem::exists(p)) {
+                ss <<  std::string(std::filesystem::canonical(p)) << std::endl;
+            } else {
+                ss <<   std::string(p) << std::endl;
+            }
+        });
+        dependencies.push_back(ss.str());
     };
 
     auto printPathDownward = [this, &handle, &dependencies](std::vector<NodeHandle> visited) {
+        std::stringstream ss;
+
         for (auto nodeHandle : visited) {
             auto node = this->graph.GetNode(nodeHandle);
             if (node.IsTerminal()) {
-                std::cout << node.GetData();
+                ss << node.GetData();
             } else {
-                std::cout << node.GetData() << " -> ";
+                ss << node.GetData() << " includes ";
             }
         }
-        std::cout << std::endl;
+        ss << std::endl;
+        dependencies.push_back(ss.str());
     };
-    
-    graph.Walk(Graph::WalkDirection::downward, handle, listDependencies);
+    if (displayChain) {
+        graph.Walk(Graph::WalkDirection::downward, handle, printPathDownward);
+    } else {
+        graph.Walk(Graph::WalkDirection::downward, handle, listDependencies);
+    }
     return dependencies;
 }

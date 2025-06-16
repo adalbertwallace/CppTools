@@ -33,5 +33,10 @@ public:
     }
 
     void UpdateNetwork(CompileCommand &cc);
-    std::vector<std::string> GetDependenciesOf(std::string include);
+    
+    std::vector<std::string> ListDependenciesOf(std::string file);
+    std::vector<std::string> ListChainOfDependenciesOf(std::string file);
+
+    private:
+    std::vector<std::string> GetDependenciesOf(std::string include, bool displayChain);
 };

@@ -86,7 +86,6 @@ int main(int argc, char *argv[]) {
         });
     }
 
-
     FilesGraph graph;
     for (auto& cc : ccs) { // Use reference to avoid copying
         std::cout <<"Processing compile command for file: "<< cc.GetSourceFile() << std::endl;
@@ -99,11 +98,21 @@ int main(int argc, char *argv[]) {
     const size_t sources_count = sources.size();
     size_t current_source_idx = 1;
     for (const auto& src : sources){ // Use const reference
-           auto deps = graph.GetDependenciesOf(src);
-
-           std::for_each(deps.begin(), deps.end(), [&](const std::string& dep){ // Use const reference
-               std::cout <<"File["<<current_source_idx<<" of " << sources_count << "]: " <<  src << " depends on " << dep << std::endl;
+           auto deps = graph.ListChainOfDependenciesOf(src);
+           std::for_each(deps.begin(), deps.end(), [&](const std::string& dep){ 
+            std::cout <<"File["<<current_source_idx<<" of " << sources_count << "]: "<<  dep;
            });
+            // std::filesystem::path().absolute(src);
+        //    std::for_each(deps.begin(), deps.end(), [&](const std::string& dep){ // Use const reference
+        //     auto p = std::filesystem::path(dep);
+            
+        //     if (std::filesystem::exists(p)) {
+        //         std::cout <<"File["<<current_source_idx<<" of " << sources_count << "]: " <<  src << " depends on " << std::filesystem::canonical(p) << std::endl;
+        //     } else {
+        //         std::cout <<"File["<<current_source_idx<<" of " << sources_count << "]: " <<  src << " depends on " << p << std::endl;
+        //     }
+            
+        //    });
            current_source_idx++;
     }
 

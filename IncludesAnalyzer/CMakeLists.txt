@@ -9,6 +9,19 @@ add_executable(IncludesAnalyzer
     src/source_file.cpp
 )
 
+add_executable(IncludesAnalyzerTest 
+    tests/main.cpp 
+    src/compile_commands_reader.cpp 
+    src/path_explorer.cpp
+    src/source_file.cpp
+)
+
+target_include_directories(
+    IncludesAnalyzerTest 
+    PRIVATE 
+        include
+)
+
 target_include_directories(
     IncludesAnalyzer 
     PRIVATE 
@@ -16,6 +29,10 @@ target_include_directories(
 )
 
 target_link_libraries(IncludesAnalyzer
+    PRIVATE
+        Graph
+)
+target_link_libraries(IncludesAnalyzerTest
     PRIVATE
         Graph
 )

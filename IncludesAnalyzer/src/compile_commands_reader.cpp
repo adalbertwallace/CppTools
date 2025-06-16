@@ -54,7 +54,7 @@
     }
 
     std::vector<CompileCommand> CompileCommandsReader::Read() {
-        std::cout << "Reading include paths"<<std::endl;
+        // std::cout << "Reading include paths"<<std::endl;
         std::ifstream compileCommandsFile(compileCommandsFilePath);
         
         std::string line;
@@ -76,13 +76,13 @@
             if (std::regex_search(line, isCommand)) {
                     includePaths = f1(line);
                     if (isCommandFound == true) {
-                        std::cout << "Failed on reading compile command" << std::endl;
+                        std::cerr << "Failed on reading compile command" << std::endl;
                     }
                     isCommandFound = true;
                 } else if (std::regex_search(line, isFile)) {
                     sourceFile =  f2(line);
                                         if (isFileFound == true) {
-                        std::cout << "Failed on reading compile command" << std::endl;
+                        std::cerr << "Failed on reading compile command" << std::endl;
                     }
                     isFileFound = true;
 
@@ -90,7 +90,7 @@
                 else if (std::regex_search(line, isDirectory)) {
                     directory =  f3(line);
                                                             if (isDirectoryFound == true) {
-                        std::cout << "Failed on reading compile command" << std::endl;
+                        std::cerr << "Failed on reading compile command" << std::endl;
                     }
                     isDirectoryFound = true;
                 } 
